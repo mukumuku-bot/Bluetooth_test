@@ -9,13 +9,38 @@
   <body>
     <main class="app">
       <section class="panel">
-        <p class="eyebrow">Web Bluetooth</p>
+        <p class="eyebrow">Safari / iOSWebBLE / Bluefy</p>
         <h1>Bluetooth Command Test</h1>
         <p class="lead">
-          ブラウザからBLEデバイスへ文字列コマンドを送るテストページです。Android Chrome / PC Chrome / Edgeで試してください。
+          Safari拡張でBluetoothが使えるか、文字起こしと同時に使えるかを確認するテストページです。
         </p>
 
-        <div id="supportStatus" class="status warn">対応確認中</div>
+        <div id="supportStatus" class="status warn">確認中</div>
+
+        <div class="support-grid">
+          <div>
+            <span>navigator.bluetooth</span>
+            <strong id="bluetoothApiStatus">確認中</strong>
+          </div>
+          <div>
+            <span>navigator.webble</span>
+            <strong id="webbleApiStatus">確認中</strong>
+          </div>
+          <div>
+            <span>音声認識</span>
+            <strong id="speechApiStatus">確認中</strong>
+          </div>
+          <div>
+            <span>マイク</span>
+            <strong id="micApiStatus">未確認</strong>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="checkMicButton" type="button">マイク確認</button>
+          <button id="speechButton" type="button">文字起こし確認</button>
+        </div>
+        <textarea id="speechText" readonly placeholder="文字起こし結果がここに表示されます"></textarea>
 
         <div class="grid">
           <label>

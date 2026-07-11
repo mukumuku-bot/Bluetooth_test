@@ -67,10 +67,36 @@ h2 {
 }
 
 .grid,
+.support-grid,
 .custom {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+.support-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 16px 0;
+}
+
+.support-grid div {
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid #d6e3f2;
+  border-radius: 6px;
+  background: #f8fbff;
+}
+
+.support-grid span,
+.support-grid strong {
+  display: block;
+}
+
+.support-grid span {
+  margin-bottom: 8px;
+  color: #5d6b7c;
+  font-size: 0.84rem;
+  font-weight: 800;
 }
 
 label {
@@ -80,13 +106,24 @@ label {
   font-weight: 800;
 }
 
-input {
+input,
+textarea {
   width: 100%;
-  min-height: 44px;
   padding: 0 12px;
   border: 1px solid #cbd9ea;
   border-radius: 6px;
   color: #142033;
+}
+
+input {
+  min-height: 44px;
+}
+
+textarea {
+  min-height: 96px;
+  margin: 12px 0 18px;
+  padding: 12px;
+  resize: vertical;
 }
 
 .actions,
@@ -130,6 +167,7 @@ pre {
 
 @media (max-width: 720px) {
   .grid,
+  .support-grid,
   .custom {
     grid-template-columns: 1fr;
   }
