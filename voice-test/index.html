@@ -15,6 +15,12 @@
 
       <section class="voice-panel" aria-live="polite">
         <p id="phrase" class="phrase">はい。 ... どうしましたか。</p>
+        <label class="voice-select-label" for="voiceSelect">
+          <span>読み上げる音声</span>
+          <select id="voiceSelect" disabled>
+            <option>音声を読み込み中です</option>
+          </select>
+        </label>
         <button id="speakButton" class="speak-button" type="button">話す</button>
         <p id="status" class="status">ボタンを押して確認してください</p>
         <p id="voiceName" class="voice-name">音声を確認中です</p>

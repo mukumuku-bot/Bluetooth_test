@@ -1,14 +1,46 @@
 const speakButton = document.querySelector("#speakButton");
 const status = document.querySelector("#status");
 const voiceName = document.querySelector("#voiceName");
+const voiceSelect = document.querySelector("#voiceSelect");
 const firstPhrase = "はい。";
 const secondPhrase = "どうしましたか。";
 
+function getJapaneseVoices() {
+  return window.speechSynthesis
+    .getVoices()
+    .filter((voice) => voice.lang.toLowerCase().startsWith("ja"));
+}
+
 function getJapaneseVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  const japaneseVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("ja"));
+  const japaneseVoices = getJapaneseVoices();
+  const selectedVoice = japaneseVoices.find((voice) => voice.voiceURI === voiceSelect.value);
+  if (selectedVoice) return selectedVoice;
   const maleVoice = japaneseVoices.find((voice) => /otoya|\bmale\b|男性|男/i.test(voice.name));
   return maleVoice || japaneseVoices[0] || null;
+}
+
+function populateVoiceOptions() {
+  const voices = getJapaneseVoices();
+  const currentValue = voiceSelect.value;
+  voiceSelect.replaceChildren();
+
+  if (!voices.length) {
+    const option = new Option("日本語音声が見つかりません", "");
+    voiceSelect.add(option);
+    voiceSelect.disabled = true;
+    updateVoiceName();
+    return;
+  }
+
+  voices.forEach((voice) => {
+    const option = new Option(`${voice.name} (${voice.lang})`, voice.voiceURI);
+    voiceSelect.add(option);
+  });
+
+  const defaultVoice = voices.find((voice) => /otoya|\bmale\b|男性|男/i.test(voice.name)) || voices[0];
+  voiceSelect.value = voices.some((voice) => voice.voiceURI === currentValue) ? currentValue : defaultVoice.voiceURI;
+  voiceSelect.disabled = false;
+  updateVoiceName();
 }
 
 function updateVoiceName() {
@@ -57,5 +89,6 @@ function speak() {
 }
 
 speakButton.addEventListener("click", speak);
-window.speechSynthesis?.addEventListener("voiceschanged", updateVoiceName);
-updateVoiceName();
+voiceSelect.addEventListener("change", updateVoiceName);
+window.speechSynthesis?.addEventListener("voiceschanged", populateVoiceOptions);
+populateVoiceOptions();

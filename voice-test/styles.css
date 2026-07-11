@@ -53,6 +53,29 @@ h1 {
   line-height: 1.5;
 }
 
+.voice-select-label {
+  display: grid;
+  gap: 8px;
+  margin: 0 auto 20px;
+  max-width: 360px;
+  text-align: left;
+  color: #52647a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.voice-select-label select {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid #b8cadf;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #13233a;
+  font: inherit;
+  font-weight: 500;
+  padding: 0 12px;
+}
+
 .speak-button {
   min-width: 180px;
   min-height: 58px;
