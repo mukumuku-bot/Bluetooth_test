@@ -2,3 +2,6 @@ project_id = "uakzkwotrawatfpwcfbi"
 
 [functions.transcribe]
 verify_jwt = false
+
+[functions.battery-alert]
+verify_jwt = false
