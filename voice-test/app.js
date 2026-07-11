@@ -2,6 +2,7 @@ const speakButton = document.querySelector("#speakButton");
 const status = document.querySelector("#status");
 const voiceName = document.querySelector("#voiceName");
 const voiceSelect = document.querySelector("#voiceSelect");
+const otoyaButton = document.querySelector("#otoyaButton");
 const firstPhrase = "はい。";
 const secondPhrase = "どうしましたか。";
 
@@ -17,6 +18,10 @@ function getJapaneseVoice() {
   if (selectedVoice) return selectedVoice;
   const maleVoice = japaneseVoices.find((voice) => /otoya|\bmale\b|男性|男/i.test(voice.name));
   return maleVoice || japaneseVoices[0] || null;
+}
+
+function getOtoyaVoice() {
+  return getJapaneseVoices().find((voice) => voice.name.toLowerCase().includes("otoya")) || null;
 }
 
 function populateVoiceOptions() {
@@ -54,9 +59,8 @@ function updateVoiceName() {
   voiceName.textContent = voice ? `使用する音声: ${voice.name}` : "日本語音声が見つかりません";
 }
 
-function createUtterance(text) {
+function createUtterance(text, voice = getJapaneseVoice()) {
   const utterance = new SpeechSynthesisUtterance(text);
-  const voice = getJapaneseVoice();
   utterance.lang = "ja-JP";
   utterance.rate = 1.04;
   utterance.pitch = voice && /otoya|\bmale\b|男性|男/i.test(voice.name) ? 0.96 : 0.82;
@@ -65,11 +69,11 @@ function createUtterance(text) {
   return utterance;
 }
 
-function speak() {
+function speak(voice = getJapaneseVoice()) {
   if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
 
-  const firstUtterance = createUtterance(firstPhrase);
-  const secondUtterance = createUtterance(secondPhrase);
+  const firstUtterance = createUtterance(firstPhrase, voice);
+  const secondUtterance = createUtterance(secondPhrase, voice);
 
   firstUtterance.addEventListener("start", () => {
     status.textContent = "読み上げ中です";
@@ -88,7 +92,31 @@ function speak() {
   window.speechSynthesis.speak(firstUtterance);
 }
 
+async function tryOtoya() {
+  if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+
+  otoyaButton.disabled = true;
+  status.textContent = "Otoyaを確認中です";
+  let otoyaVoice = getOtoyaVoice();
+
+  for (let attempt = 0; !otoyaVoice && attempt < 8; attempt += 1) {
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+    otoyaVoice = getOtoyaVoice();
+  }
+
+  otoyaButton.disabled = false;
+  if (!otoyaVoice) {
+    status.textContent = "BluefyからOtoyaを使用できません。現在はKyokoのみです。";
+    return;
+  }
+
+  voiceSelect.value = otoyaVoice.voiceURI;
+  updateVoiceName();
+  speak(otoyaVoice);
+}
+
 speakButton.addEventListener("click", speak);
+otoyaButton.addEventListener("click", tryOtoya);
 voiceSelect.addEventListener("change", updateVoiceName);
 window.speechSynthesis?.addEventListener("voiceschanged", populateVoiceOptions);
 populateVoiceOptions();

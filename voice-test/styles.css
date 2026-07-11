@@ -93,6 +93,19 @@ h1 {
   background: #0c5cad;
 }
 
+.secondary-button {
+  display: block;
+  min-width: 180px;
+  min-height: 44px;
+  margin: 12px auto 0;
+  border: 1px solid #1673d3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1673d3;
+  font: inherit;
+  font-weight: 700;
+}
+
 .status {
   min-height: 24px;
   margin: 24px 0 6px;
