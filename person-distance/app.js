@@ -2,9 +2,11 @@ const elements = {
   video: document.querySelector("#video"),
   overlay: document.querySelector("#overlay"),
   cameraMessage: document.querySelector("#cameraMessage"),
+  readout: document.querySelector("#readout"),
   distanceText: document.querySelector("#distanceText"),
   methodText: document.querySelector("#methodText"),
   startButton: document.querySelector("#startButton"),
+  calibrateButton: document.querySelector("#calibrateButton"),
   stopButton: document.querySelector("#stopButton"),
 };
 
@@ -16,14 +18,23 @@ const state = {
   detecting: false,
   rafId: null,
   distanceMeters: null,
+  inTargetRange: false,
+  signalAudioContext: null,
+  lastRawDistance: null,
+  calibrationScale: loadCalibrationScale(),
 };
 
 const PERSON_HEIGHT_METERS = 1.65;
 const FACE_HEIGHT_METERS = 0.22;
 const CAMERA_VERTICAL_FOV_DEGREES = 58;
+const TARGET_DISTANCE_MIN_METERS = 0.8;
+const TARGET_DISTANCE_MAX_METERS = 1.6;
+const TARGET_DISTANCE_EXIT_MIN_METERS = 0.7;
+const TARGET_DISTANCE_EXIT_MAX_METERS = 1.7;
 const ctx = elements.overlay.getContext("2d");
 
 elements.startButton.addEventListener("click", startCamera);
+elements.calibrateButton.addEventListener("click", calibrateAtOneMeter);
 elements.stopButton.addEventListener("click", stopCamera);
 window.addEventListener("resize", resizeOverlay);
 
@@ -31,6 +42,7 @@ async function startCamera() {
   elements.startButton.disabled = true;
   elements.cameraMessage.textContent = "カメラと検出モデルを準備しています";
   elements.cameraMessage.classList.remove("is-hidden");
+  primeSignalSound();
 
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
@@ -42,6 +54,7 @@ async function startCamera() {
     await loadModels();
     state.running = true;
     elements.stopButton.disabled = false;
+    elements.calibrateButton.disabled = false;
     elements.cameraMessage.classList.add("is-hidden");
     resizeOverlay();
     detectLoop();
@@ -60,8 +73,10 @@ function stopCamera() {
   elements.video.srcObject = null;
   elements.startButton.disabled = false;
   elements.stopButton.disabled = true;
-  elements.distanceText.textContent = "--";
+  elements.calibrateButton.disabled = true;
+  elements.distanceText.textContent = "範囲外";
   elements.methodText.textContent = "人物を検出すると表示されます";
+  setTargetRangeState(false, false);
   elements.cameraMessage.textContent = "カメラを開始してください";
   elements.cameraMessage.classList.remove("is-hidden");
   ctx.clearRect(0, 0, elements.overlay.width, elements.overlay.height);
@@ -119,16 +134,31 @@ function renderDetection(predictions, faces) {
   clearOverlay();
   if (!sourceBox || !frameWidth || !frameHeight) {
     state.distanceMeters = null;
-    elements.distanceText.textContent = "--";
+    setTargetRangeState(false, false);
+    elements.distanceText.textContent = "範囲外";
     elements.methodText.textContent = "人物を検出できません";
     return;
   }
 
-  const measured = estimateDistanceMeters(sourceBox, frameHeight, referenceHeight);
-  const distance = smoothDistance(measured);
+  const rawDistance = estimateDistanceMeters(sourceBox, frameHeight, referenceHeight);
+  state.lastRawDistance = rawDistance;
+  const distance = smoothDistance(rawDistance * state.calibrationScale);
+  setTargetRangeState(isInTargetRange(distance), true);
   drawBox(sourceBox, mainFace ? "顔" : "人物");
-  elements.distanceText.textContent = `${distance.toFixed(1)} m`;
-  elements.methodText.textContent = mainFace ? "顔の大きさから推定" : "人物の大きさから推定";
+  elements.distanceText.textContent = state.inTargetRange ? "範囲内" : "範囲外";
+  elements.methodText.textContent = `${mainFace ? "顔" : "人物"}から推定: ${distance.toFixed(1)}m / 目安: ${TARGET_DISTANCE_MIN_METERS}〜${TARGET_DISTANCE_MAX_METERS}m`;
+}
+
+function calibrateAtOneMeter() {
+  if (!Number.isFinite(state.lastRawDistance)) {
+    elements.methodText.textContent = "1mの位置に立ち、人物を検出してから押してください";
+    return;
+  }
+
+  state.calibrationScale = 1 / state.lastRawDistance;
+  state.distanceMeters = 1;
+  saveCalibrationScale(state.calibrationScale);
+  elements.methodText.textContent = "1mで校正しました。以後はこのiPhoneに合わせて判定します";
 }
 
 function getFaceBbox(face) {
@@ -171,6 +201,67 @@ function smoothDistance(measured) {
     ? state.distanceMeters * 0.72 + measured * 0.28
     : measured;
   return state.distanceMeters;
+}
+
+function isInTargetRange(distance) {
+  if (state.inTargetRange) {
+    return distance >= TARGET_DISTANCE_EXIT_MIN_METERS && distance <= TARGET_DISTANCE_EXIT_MAX_METERS;
+  }
+  return distance >= TARGET_DISTANCE_MIN_METERS && distance <= TARGET_DISTANCE_MAX_METERS;
+}
+
+function setTargetRangeState(isInRange, playSignal) {
+  const enteredRange = isInRange && !state.inTargetRange;
+  state.inTargetRange = isInRange;
+  elements.readout.classList.toggle("is-in-range", isInRange);
+  if (enteredRange && playSignal) playRangeSignal();
+}
+
+function primeSignalSound() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  state.signalAudioContext ||= new AudioContext();
+  if (state.signalAudioContext.state === "suspended") {
+    state.signalAudioContext.resume().catch(() => {});
+  }
+}
+
+function playRangeSignal() {
+  primeSignalSound();
+  const audioContext = state.signalAudioContext;
+  if (!audioContext) return;
+
+  const now = audioContext.currentTime;
+  [0, 0.15].forEach((offset, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(index ? 880 : 660, now + offset);
+    gain.gain.setValueAtTime(0.0001, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.15, now + offset + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.11);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now + offset);
+    oscillator.stop(now + offset + 0.12);
+  });
+}
+
+function loadCalibrationScale() {
+  try {
+    const value = Number(window.localStorage.getItem("person-distance-calibration-scale"));
+    return Number.isFinite(value) && value > 0 ? value : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function saveCalibrationScale(value) {
+  try {
+    window.localStorage.setItem("person-distance-calibration-scale", String(value));
+  } catch {
+    // Calibration still applies until this page is closed.
+  }
 }
 
 function resizeOverlay() {
