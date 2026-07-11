@@ -107,18 +107,9 @@ canvas {
   font-size: 14px;
 }
 
-.readout.is-in-range {
-  background: #e9f8ef;
-}
-
-.readout.is-in-range strong {
-  color: #16834b;
-}
-
 .actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  gap: 12px;
   padding: 12px 24px 24px;
 }
 
@@ -145,10 +136,4 @@ button {
 button:disabled {
   cursor: default;
   opacity: 0.5;
-}
-
-@media (max-width: 440px) {
-  .actions {
-    grid-template-columns: 1fr;
-  }
 }

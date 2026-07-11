@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#1673d3" />
     <title>人物距離テスト</title>
-    <link rel="stylesheet" href="./styles.css?v=range-calibration-1" />
+    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <main class="distance-test">
@@ -20,15 +20,14 @@
           <p id="cameraMessage" class="camera-message">カメラを開始してください</p>
         </div>
 
-        <div id="readout" class="readout" aria-live="polite">
-          <span>距離判定</span>
-          <strong id="distanceText">範囲外</strong>
+        <div class="readout" aria-live="polite">
+          <span>推定距離</span>
+          <strong id="distanceText">--</strong>
           <p id="methodText">人物を検出すると表示されます</p>
         </div>
 
         <div class="actions">
           <button id="startButton" class="primary-button" type="button">カメラを開始</button>
-          <button id="calibrateButton" class="secondary-button" type="button" disabled>1mで校正</button>
           <button id="stopButton" class="secondary-button" type="button" disabled>停止</button>
         </div>
       </section>
@@ -37,6 +36,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.3/dist/face-detection.min.js"></script>
-    <script src="./app.js?v=range-calibration-1"></script>
+    <script src="./app.js"></script>
   </body>
 </html>
