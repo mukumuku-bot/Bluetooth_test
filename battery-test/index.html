@@ -4,28 +4,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#1673d3" />
-    <title>バッテリー残量テスト</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <title>スマホ充電残量テスト</title>
+    <link rel="stylesheet" href="./styles.css?v=phone-battery-1" />
   </head>
   <body>
     <main class="battery-test">
-      <p class="eyebrow">Bluetooth Battery Service</p>
-      <h1>バッテリー残量テスト</h1>
-      <p id="deviceName" class="device-name">未接続</p>
+      <p class="eyebrow">Phone Battery Status</p>
+      <h1>スマホ充電残量テスト</h1>
+      <p class="device-name">このiPhoneの充電残量を確認します</p>
 
       <section class="battery-panel" aria-live="polite">
         <div class="battery-icon" aria-hidden="true">
           <span id="batteryFill"></span>
         </div>
         <strong id="batteryPercent">--%</strong>
-        <p id="status">Bluetooth機器を接続してください</p>
+        <p id="chargingText">充電状態を確認中です</p>
+        <p id="status">残量を確認しています</p>
       </section>
 
       <div class="actions">
-        <button id="connectButton" class="primary-button" type="button">Bluetooth接続</button>
-        <button id="refreshButton" class="secondary-button" type="button" disabled>更新</button>
+        <button id="refreshButton" class="primary-button" type="button">更新</button>
       </div>
     </main>
-    <script src="./app.js"></script>
+    <script src="./app.js?v=phone-battery-1"></script>
   </body>
 </html>
