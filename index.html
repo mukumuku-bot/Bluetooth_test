@@ -9,10 +9,10 @@
   <body>
     <main class="app">
       <section class="panel">
-        <p class="eyebrow">Safari / iOSWebBLE / Bluefy</p>
+        <p class="eyebrow">Bluefy / Safari speech test</p>
         <h1>Bluetooth Command Test</h1>
         <p class="lead">
-          Safari拡張でBluetoothが使えるか、文字起こしと同時に使えるかを確認するテストページです。
+          BluefyでBluetoothと音声認識を同時に使えるか確認します。APIが「あり」でも、開始・結果・エラーのどこで止まるかログで見ます。
         </p>
 
         <div id="supportStatus" class="status warn">確認中</div>
@@ -36,9 +36,23 @@
           </div>
         </div>
 
+        <div class="speech-options">
+          <label>
+            <span>音声認識モード</span>
+            <select id="speechMode">
+              <option value="simple">通常: 日本語・単発・途中結果あり</option>
+              <option value="afterMic">マイク許可後: 日本語・単発・途中結果あり</option>
+              <option value="finalOnly">最終結果のみ: 日本語・単発</option>
+              <option value="continuous">連続: 日本語・途中結果あり</option>
+              <option value="english">英語テスト: en-US・単発</option>
+            </select>
+          </label>
+        </div>
+
         <div class="actions">
           <button id="checkMicButton" type="button">マイク確認</button>
           <button id="speechButton" type="button">文字起こし確認</button>
+          <button id="stopSpeechButton" type="button" disabled>文字起こし停止</button>
         </div>
         <textarea id="speechText" readonly placeholder="文字起こし結果がここに表示されます"></textarea>
 
@@ -83,6 +97,42 @@
           </label>
           <button id="sendCustomButton" type="submit" disabled>送信</button>
         </form>
+      </section>
+
+      <section class="panel">
+        <p class="eyebrow">Server transcription</p>
+        <h2>短い録音を連続で文字起こし</h2>
+        <p class="lead">
+          Bluefyでマイク音声を約2秒ごとに録音し、サーバー文字起こしへ送ります。犬の名前を聞いたらBARK、「犬の名前 おいで」を聞いたらCOMEを送ります。
+        </p>
+
+        <div class="grid">
+          <label>
+            <span>文字起こしサーバーURL</span>
+            <input id="serverTranscribeUrl" type="url" value="https://uakzkwotrawatfpwcfbi.supabase.co/functions/v1/transcribe" />
+          </label>
+
+          <label>
+            <span>犬の名前</span>
+            <input id="dogName" type="text" value="ポチ" />
+          </label>
+
+          <label>
+            <span>録音間隔</span>
+            <select id="chunkSeconds">
+              <option value="1.5">1.5秒</option>
+              <option value="2" selected>2秒</option>
+              <option value="2.5">2.5秒</option>
+              <option value="3">3秒</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="serverListenButton" type="button">サーバー聞き取り開始</button>
+          <button id="stopServerListenButton" type="button" disabled>停止</button>
+        </div>
+        <textarea id="serverTranscriptText" readonly placeholder="サーバー文字起こし結果がここに表示されます"></textarea>
       </section>
 
       <section class="panel">

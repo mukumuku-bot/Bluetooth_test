@@ -107,7 +107,8 @@ label {
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 0 12px;
   border: 1px solid #cbd9ea;
@@ -115,7 +116,8 @@ textarea {
   color: #142033;
 }
 
-input {
+input,
+select {
   min-height: 44px;
 }
 
