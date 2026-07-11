@@ -2,6 +2,7 @@ const elements = {
   video: document.querySelector("#video"),
   overlay: document.querySelector("#overlay"),
   cameraMessage: document.querySelector("#cameraMessage"),
+  readout: document.querySelector("#readout"),
   distanceText: document.querySelector("#distanceText"),
   methodText: document.querySelector("#methodText"),
   startButton: document.querySelector("#startButton"),
@@ -16,11 +17,15 @@ const state = {
   detecting: false,
   rafId: null,
   distanceMeters: null,
+  inTargetRange: false,
+  signalAudioContext: null,
 };
 
 const PERSON_HEIGHT_METERS = 1.65;
 const FACE_HEIGHT_METERS = 0.22;
 const CAMERA_VERTICAL_FOV_DEGREES = 58;
+const TARGET_DISTANCE_METERS = 2;
+const TARGET_DISTANCE_EXIT_METERS = 2.15;
 const ctx = elements.overlay.getContext("2d");
 
 elements.startButton.addEventListener("click", startCamera);
@@ -31,6 +36,7 @@ async function startCamera() {
   elements.startButton.disabled = true;
   elements.cameraMessage.textContent = "カメラと検出モデルを準備しています";
   elements.cameraMessage.classList.remove("is-hidden");
+  primeSignalSound();
 
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
@@ -62,6 +68,7 @@ function stopCamera() {
   elements.stopButton.disabled = true;
   elements.distanceText.textContent = "--";
   elements.methodText.textContent = "人物を検出すると表示されます";
+  setTargetRangeState(false, false);
   elements.cameraMessage.textContent = "カメラを開始してください";
   elements.cameraMessage.classList.remove("is-hidden");
   ctx.clearRect(0, 0, elements.overlay.width, elements.overlay.height);
@@ -119,6 +126,7 @@ function renderDetection(predictions, faces) {
   clearOverlay();
   if (!sourceBox || !frameWidth || !frameHeight) {
     state.distanceMeters = null;
+    setTargetRangeState(false, false);
     elements.distanceText.textContent = "--";
     elements.methodText.textContent = "人物を検出できません";
     return;
@@ -126,9 +134,12 @@ function renderDetection(predictions, faces) {
 
   const measured = estimateDistanceMeters(sourceBox, frameHeight, referenceHeight);
   const distance = smoothDistance(measured);
+  setTargetRangeState(isInTargetRange(distance), true);
   drawBox(sourceBox, mainFace ? "顔" : "人物");
   elements.distanceText.textContent = `${distance.toFixed(1)} m`;
-  elements.methodText.textContent = mainFace ? "顔の大きさから推定" : "人物の大きさから推定";
+  elements.methodText.textContent = state.inTargetRange
+    ? `2m以内を検知しました / ${mainFace ? "顔" : "人物"}の大きさから推定`
+    : `${mainFace ? "顔" : "人物"}の大きさから推定`;
 }
 
 function getFaceBbox(face) {
@@ -171,6 +182,47 @@ function smoothDistance(measured) {
     ? state.distanceMeters * 0.72 + measured * 0.28
     : measured;
   return state.distanceMeters;
+}
+
+function isInTargetRange(distance) {
+  return state.inTargetRange ? distance <= TARGET_DISTANCE_EXIT_METERS : distance <= TARGET_DISTANCE_METERS;
+}
+
+function setTargetRangeState(isInRange, playSignal) {
+  const enteredRange = isInRange && !state.inTargetRange;
+  state.inTargetRange = isInRange;
+  elements.readout.classList.toggle("is-in-range", isInRange);
+  if (enteredRange && playSignal) playRangeSignal();
+}
+
+function primeSignalSound() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  state.signalAudioContext ||= new AudioContext();
+  if (state.signalAudioContext.state === "suspended") {
+    state.signalAudioContext.resume().catch(() => {});
+  }
+}
+
+function playRangeSignal() {
+  primeSignalSound();
+  const audioContext = state.signalAudioContext;
+  if (!audioContext) return;
+
+  const now = audioContext.currentTime;
+  [0, 0.15].forEach((offset, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(index ? 880 : 660, now + offset);
+    gain.gain.setValueAtTime(0.0001, now + offset);
+    gain.gain.exponentialRampToValueAtTime(0.15, now + offset + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.11);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(now + offset);
+    oscillator.stop(now + offset + 0.12);
+  });
 }
 
 function resizeOverlay() {

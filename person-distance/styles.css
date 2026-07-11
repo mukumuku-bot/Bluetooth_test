@@ -107,6 +107,14 @@ canvas {
   font-size: 14px;
 }
 
+.readout.is-in-range {
+  background: #e9f8ef;
+}
+
+.readout.is-in-range strong {
+  color: #16834b;
+}
+
 .actions {
   display: flex;
   gap: 12px;
