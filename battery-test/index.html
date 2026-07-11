@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1673d3" />
+    <title>バッテリー残量テスト</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="battery-test">
+      <p class="eyebrow">Bluetooth Battery Service</p>
+      <h1>バッテリー残量テスト</h1>
+      <p id="deviceName" class="device-name">未接続</p>
+
+      <section class="battery-panel" aria-live="polite">
+        <div class="battery-icon" aria-hidden="true">
+          <span id="batteryFill"></span>
+        </div>
+        <strong id="batteryPercent">--%</strong>
+        <p id="status">Bluetooth機器を接続してください</p>
+      </section>
+
+      <div class="actions">
+        <button id="connectButton" class="primary-button" type="button">Bluetooth接続</button>
+        <button id="refreshButton" class="secondary-button" type="button" disabled>更新</button>
+      </div>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
