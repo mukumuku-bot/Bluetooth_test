@@ -2,7 +2,6 @@ const elements = {
   video: document.querySelector("#video"),
   overlay: document.querySelector("#overlay"),
   cameraMessage: document.querySelector("#cameraMessage"),
-  readout: document.querySelector("#readout"),
   distanceText: document.querySelector("#distanceText"),
   methodText: document.querySelector("#methodText"),
   startButton: document.querySelector("#startButton"),
@@ -16,14 +15,12 @@ const state = {
   running: false,
   detecting: false,
   rafId: null,
-  inTargetRange: false,
-  signalAudioContext: null,
+  distanceMeters: null,
 };
 
-const TARGET_FACE_HEIGHT_MIN_RATIO = 0.12;
-const TARGET_FACE_HEIGHT_MAX_RATIO = 0.24;
-const TARGET_FACE_HEIGHT_EXIT_MIN_RATIO = 0.1;
-const TARGET_FACE_HEIGHT_EXIT_MAX_RATIO = 0.26;
+const PERSON_HEIGHT_METERS = 1.65;
+const FACE_HEIGHT_METERS = 0.22;
+const CAMERA_VERTICAL_FOV_DEGREES = 58;
 const ctx = elements.overlay.getContext("2d");
 
 elements.startButton.addEventListener("click", startCamera);
@@ -34,7 +31,6 @@ async function startCamera() {
   elements.startButton.disabled = true;
   elements.cameraMessage.textContent = "カメラと検出モデルを準備しています";
   elements.cameraMessage.classList.remove("is-hidden");
-  primeSignalSound();
 
   try {
     state.stream = await navigator.mediaDevices.getUserMedia({
@@ -64,9 +60,8 @@ function stopCamera() {
   elements.video.srcObject = null;
   elements.startButton.disabled = false;
   elements.stopButton.disabled = true;
-  setTargetRangeState(false, false);
-  elements.distanceText.textContent = "顔を探しています";
-  elements.methodText.textContent = "顔の大きさで近さを判定します";
+  elements.distanceText.textContent = "--";
+  elements.methodText.textContent = "人物を検出すると表示されます";
   elements.cameraMessage.textContent = "カメラを開始してください";
   elements.cameraMessage.classList.remove("is-hidden");
   ctx.clearRect(0, 0, elements.overlay.width, elements.overlay.height);
@@ -118,24 +113,22 @@ function renderDetection(predictions, faces) {
   const mainPerson = people[0] || null;
   const faceBboxes = faces.map(getFaceBbox).filter((bbox) => bbox[2] > 0 && bbox[3] > 0);
   const mainFace = mainPerson ? findFaceInPerson(mainPerson.bbox, faceBboxes) : largestBox(faceBboxes);
+  const sourceBox = mainFace || mainPerson?.bbox || null;
+  const referenceHeight = mainFace ? FACE_HEIGHT_METERS : PERSON_HEIGHT_METERS;
+
   clearOverlay();
-  if (!frameWidth || !frameHeight || !mainFace) {
-    setTargetRangeState(false, false);
-    elements.distanceText.textContent = mainPerson ? "顔を向けてください" : "人物を探しています";
-    elements.methodText.textContent = mainPerson ? "顔を検出すると近さを判定します" : "カメラに人物を映してください";
-    if (mainPerson) drawBox(mainPerson.bbox, "人物");
+  if (!sourceBox || !frameWidth || !frameHeight) {
+    state.distanceMeters = null;
+    elements.distanceText.textContent = "--";
+    elements.methodText.textContent = "人物を検出できません";
     return;
   }
 
-  const faceHeightRatio = mainFace[3] / frameHeight;
-  setTargetRangeState(isInTargetRange(faceHeightRatio), true);
-  drawBox(mainFace, "顔");
-  elements.distanceText.textContent = state.inTargetRange
-    ? "適正距離"
-    : faceHeightRatio < TARGET_FACE_HEIGHT_MIN_RATIO
-      ? "遠い"
-      : "近い";
-  elements.methodText.textContent = `顔の大きさ: ${Math.round(faceHeightRatio * 100)}% / 適正範囲: ${Math.round(TARGET_FACE_HEIGHT_MIN_RATIO * 100)}〜${Math.round(TARGET_FACE_HEIGHT_MAX_RATIO * 100)}%`;
+  const measured = estimateDistanceMeters(sourceBox, frameHeight, referenceHeight);
+  const distance = smoothDistance(measured);
+  drawBox(sourceBox, mainFace ? "顔" : "人物");
+  elements.distanceText.textContent = `${distance.toFixed(1)} m`;
+  elements.methodText.textContent = mainFace ? "顔の大きさから推定" : "人物の大きさから推定";
 }
 
 function getFaceBbox(face) {
@@ -165,50 +158,19 @@ function largestBox(boxes) {
   return [...boxes].sort((a, b) => b[2] * b[3] - a[2] * a[3])[0] || null;
 }
 
-function isInTargetRange(faceHeightRatio) {
-  if (state.inTargetRange) {
-    return faceHeightRatio >= TARGET_FACE_HEIGHT_EXIT_MIN_RATIO
-      && faceHeightRatio <= TARGET_FACE_HEIGHT_EXIT_MAX_RATIO;
-  }
-  return faceHeightRatio >= TARGET_FACE_HEIGHT_MIN_RATIO
-    && faceHeightRatio <= TARGET_FACE_HEIGHT_MAX_RATIO;
+function estimateDistanceMeters(bbox, frameHeight, referenceHeightMeters) {
+  const pixelHeight = bbox[3];
+  const heightRatio = pixelHeight / frameHeight;
+  const halfFovRadians = (CAMERA_VERTICAL_FOV_DEGREES * Math.PI) / 360;
+  const estimated = referenceHeightMeters / (2 * heightRatio * Math.tan(halfFovRadians));
+  return Math.min(12, Math.max(0.25, estimated));
 }
 
-function setTargetRangeState(isInRange, playSignal) {
-  const enteredRange = isInRange && !state.inTargetRange;
-  state.inTargetRange = isInRange;
-  elements.readout.classList.toggle("is-in-range", isInRange);
-  if (enteredRange && playSignal) playRangeSignal();
-}
-
-function primeSignalSound() {
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  state.signalAudioContext ||= new AudioContext();
-  if (state.signalAudioContext.state === "suspended") {
-    state.signalAudioContext.resume().catch(() => {});
-  }
-}
-
-function playRangeSignal() {
-  primeSignalSound();
-  const audioContext = state.signalAudioContext;
-  if (!audioContext) return;
-
-  const now = audioContext.currentTime;
-  [0, 0.15].forEach((offset, index) => {
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(index ? 880 : 660, now + offset);
-    gain.gain.setValueAtTime(0.0001, now + offset);
-    gain.gain.exponentialRampToValueAtTime(0.15, now + offset + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.11);
-    oscillator.connect(gain);
-    gain.connect(audioContext.destination);
-    oscillator.start(now + offset);
-    oscillator.stop(now + offset + 0.12);
-  });
+function smoothDistance(measured) {
+  state.distanceMeters = Number.isFinite(state.distanceMeters)
+    ? state.distanceMeters * 0.72 + measured * 0.28
+    : measured;
+  return state.distanceMeters;
 }
 
 function resizeOverlay() {
