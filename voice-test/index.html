@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1673d3" />
+    <title>イケボ音声テスト</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="voice-test">
+      <p class="eyebrow">Bluefy Voice Test</p>
+      <h1>イケボ音声テスト</h1>
+      <p class="lead">iPhoneに入っている日本語音声で、犬の応答を読み上げます。</p>
+
+      <section class="voice-panel" aria-live="polite">
+        <p id="phrase" class="phrase">はい、どうしましたか。</p>
+        <button id="speakButton" class="speak-button" type="button">話す</button>
+        <p id="status" class="status">ボタンを押して確認してください</p>
+        <p id="voiceName" class="voice-name">音声を確認中です</p>
+      </section>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>
