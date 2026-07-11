@@ -1,7 +1,8 @@
 const speakButton = document.querySelector("#speakButton");
 const status = document.querySelector("#status");
 const voiceName = document.querySelector("#voiceName");
-const phrase = "はい、どうしましたか。";
+const firstPhrase = "はい。";
+const secondPhrase = "どうしましたか。";
 
 function getJapaneseVoice() {
   const voices = window.speechSynthesis.getVoices();
@@ -21,29 +22,38 @@ function updateVoiceName() {
   voiceName.textContent = voice ? `使用する音声: ${voice.name}` : "日本語音声が見つかりません";
 }
 
+function createUtterance(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  const voice = getJapaneseVoice();
+  utterance.lang = "ja-JP";
+  utterance.rate = 1.04;
+  utterance.pitch = voice && /otoya|\bmale\b|男性|男/i.test(voice.name) ? 0.96 : 0.82;
+  utterance.volume = 1;
+  if (voice) utterance.voice = voice;
+  return utterance;
+}
+
 function speak() {
   if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
 
-  const utterance = new SpeechSynthesisUtterance(phrase);
-  const voice = getJapaneseVoice();
-  utterance.lang = "ja-JP";
-  utterance.rate = 0.88;
-  utterance.pitch = voice && /otoya|\bmale\b|男性|男/i.test(voice.name) ? 0.92 : 0.72;
-  utterance.volume = 1;
-  if (voice) utterance.voice = voice;
+  const firstUtterance = createUtterance(firstPhrase);
+  const secondUtterance = createUtterance(secondPhrase);
 
-  utterance.addEventListener("start", () => {
+  firstUtterance.addEventListener("start", () => {
     status.textContent = "読み上げ中です";
   });
-  utterance.addEventListener("end", () => {
+  firstUtterance.addEventListener("end", () => {
+    window.setTimeout(() => window.speechSynthesis.speak(secondUtterance), 320);
+  });
+  secondUtterance.addEventListener("end", () => {
     status.textContent = "読み上げが終わりました";
   });
-  utterance.addEventListener("error", () => {
+  secondUtterance.addEventListener("error", () => {
     status.textContent = "読み上げを開始できませんでした";
   });
 
   window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  window.speechSynthesis.speak(firstUtterance);
 }
 
 speakButton.addEventListener("click", speak);
